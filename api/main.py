@@ -1,8 +1,12 @@
 
-"""Personal AI Agent API with Supabase authentication."""
+"""Personal AI Agent - Secure FastAPI Backend."""
 
+import asyncio
+import logging
 import os
 import secrets
+import time
+
 from contextlib import asynccontextmanager
 
 import httpx
@@ -12,70 +16,142 @@ from google.genai import types
 from pydantic import BaseModel, Field
 
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL", ""
+).rstrip("/")
+
 SUPABASE_PUBLISHABLE_KEY = os.environ.get(
     "SUPABASE_PUBLISHABLE_KEY", ""
 )
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get(
-    "GEMINI_MODEL", "gemini-3.1-flash-lite"
+GEMINI_API_KEY = os.environ.get(
+    "GEMINI_API_KEY", ""
 )
 
-# Temporary compatibility for the existing Android app.
-# Remove before public release.
-APP_ACCESS_TOKEN = os.environ.get("APP_ACCESS_TOKEN", "")
+GEMINI_MODEL = os.environ.get(
+    "GEMINI_MODEL",
+    "gemini-3.1-flash-lite",
+)
 
+# Temporary compatibility with older Android builds.
+# Must be removed before public release.
+APP_ACCESS_TOKEN = os.environ.get(
+    "APP_ACCESS_TOKEN", ""
+)
+
+GEMINI_TIMEOUT_SECONDS = 35
+
+logger = logging.getLogger("uvicorn.error")
+
+
+# --------------------------------------------------
+# Application Lifecycle
+# --------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with httpx.AsyncClient(timeout=15.0) as client:
+
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(
+            connect=5.0,
+            read=10.0,
+            write=5.0,
+            pool=5.0,
+        )
+    ) as client:
+
         app.state.http_client = client
+
+        logger.info("Personal AI Agent backend started")
+
         yield
+
+        logger.info("Personal AI Agent backend stopped")
 
 
 app = FastAPI(
     title="Personal AI Agent API",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
 
+# --------------------------------------------------
+# Request Models
+# --------------------------------------------------
+
 class Message(BaseModel):
     role: str
-    content: str = Field(min_length=1, max_length=6000)
+    content: str = Field(
+        min_length=1,
+        max_length=6000,
+    )
 
 
 class ChatRequest(BaseModel):
     messages: list[Message] = Field(
-        min_length=1, max_length=12
+        min_length=1,
+        max_length=12,
     )
 
 
+# --------------------------------------------------
+# Health Endpoint
+# --------------------------------------------------
+
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "service": "Personal AI Agent",
+    }
 
+
+# --------------------------------------------------
+# Authentication
+# --------------------------------------------------
 
 async def authenticate(
     authorization: str | None,
 ) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Authentication required")
 
-    access_token = authorization[7:].strip()
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+        )
 
-    if not access_token:
-        raise HTTPException(401, "Authentication required")
+    scheme, separator, access_token = (
+        authorization.partition(" ")
+    )
 
-    # Temporary support for the existing Android app.
+    if (
+        not separator
+        or scheme.lower() != "bearer"
+        or not access_token.strip()
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authorization header",
+        )
+
+    access_token = access_token.strip()
+
+    # Temporary legacy compatibility.
     if APP_ACCESS_TOKEN and secrets.compare_digest(
-        access_token, APP_ACCESS_TOKEN
+        access_token,
+        APP_ACCESS_TOKEN,
     ):
         return "legacy-user"
 
     if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
         raise HTTPException(
-            503, "Supabase authentication not configured"
+            status_code=503,
+            detail="Supabase authentication unavailable",
         )
 
     try:
@@ -86,97 +162,190 @@ async def authenticate(
                 "Authorization": f"Bearer {access_token}",
             },
         )
-    except httpx.RequestError:
+
+    except httpx.TimeoutException:
+        logger.warning("Supabase verification timed out")
+
         raise HTTPException(
-            503, "Authentication service unavailable"
+            status_code=503,
+            detail="Authentication service timed out",
+        ) from None
+
+    except httpx.RequestError:
+        logger.warning("Supabase verification unavailable")
+
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service unavailable",
+        ) from None
+
+    if response.status_code in (401, 403):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired login session",
         )
 
     if response.status_code != 200:
-        if response.status_code in (401, 403):
-            raise HTTPException(
-                401, "Invalid or expired login session"
-            )
+        logger.warning(
+            "Supabase verification returned HTTP %d",
+            response.status_code,
+        )
+
         raise HTTPException(
-            503, "Authentication verification failed"
+            status_code=503,
+            detail="Authentication verification failed",
         )
 
     try:
         user = response.json()
-    except ValueError:
-        raise HTTPException(
-            503, "Invalid authentication response"
-        )
+        user_id = user.get("id")
 
-    user_id = user.get("id")
+    except (ValueError, AttributeError):
+        raise HTTPException(
+            status_code=503,
+            detail="Invalid authentication response",
+        ) from None
 
     if not isinstance(user_id, str) or not user_id:
         raise HTTPException(
-            401, "Invalid user identity"
+            status_code=401,
+            detail="Invalid user identity",
         )
 
     return user_id
 
+
+# --------------------------------------------------
+# Gemini Chat
+# --------------------------------------------------
 
 @app.post("/chat")
 async def chat(
     body: ChatRequest,
     authorization: str | None = Header(default=None),
 ):
-    user_id = await authenticate(authorization)
+
+    request_started = time.perf_counter()
+
+    # Verify user identity.
+    await authenticate(authorization)
+
+    auth_seconds = (
+        time.perf_counter() - request_started
+    )
+
+    logger.info(
+        "AI timing: authentication=%.2fs",
+        auth_seconds,
+    )
 
     if not GEMINI_API_KEY:
         raise HTTPException(
-            503, "Gemini backend not configured"
+            status_code=503,
+            detail="Gemini backend not configured",
         )
 
     if any(
         message.role not in ("user", "assistant")
         for message in body.messages
     ):
-        raise HTTPException(400, "Invalid message role")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid message role",
+        )
 
     contents = [
         types.Content(
-            role="user" if message.role == "user" else "model",
+            role=(
+                "user"
+                if message.role == "user"
+                else "model"
+            ),
             parts=[
-                types.Part.from_text(text=message.content)
+                types.Part.from_text(
+                    text=message.content
+                )
             ],
         )
         for message in body.messages
     ]
 
+    gemini_started = time.perf_counter()
+
     try:
-        async with genai.Client(
-            api_key=GEMINI_API_KEY
-        ).aio as client:
-            response = await client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "You are a helpful personal assistant."
-                    ),
-                    max_output_tokens=800,
-                ),
-            )
+        async def generate_reply():
+
+            async with genai.Client(
+                api_key=GEMINI_API_KEY,
+            ).aio as client:
+
+                response = (
+                    await client.models.generate_content(
+                        model=GEMINI_MODEL,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            system_instruction=(
+                                "You are a helpful personal "
+                                "AI assistant. Give clear, "
+                                "accurate and concise answers. "
+                                "For simple questions, respond "
+                                "briefly. For complex questions, "
+                                "provide enough detail."
+                            ),
+                            max_output_tokens=400,
+                            temperature=0.4,
+                        ),
+                    )
+                )
+
+                return response.text or (
+                    "No response generated."
+                )
+
+        reply = await asyncio.wait_for(
+            generate_reply(),
+            timeout=GEMINI_TIMEOUT_SECONDS,
+        )
+
+        gemini_seconds = (
+            time.perf_counter() - gemini_started
+        )
+
+        total_seconds = (
+            time.perf_counter() - request_started
+        )
+
+        logger.info(
+            "AI timing: gemini=%.2fs total=%.2fs",
+            gemini_seconds,
+            total_seconds,
+        )
 
         return {
-            "reply": response.text
-            or "No response generated."
+            "reply": reply,
         }
 
-    
-    except Exception as exc:
-        import logging
+    except asyncio.TimeoutError:
 
-        logger = logging.getLogger("uvicorn.error")
+        logger.warning(
+            "Gemini timeout after %.2fs",
+            time.perf_counter() - gemini_started,
+        )
+
+        raise HTTPException(
+            status_code=504,
+            detail="AI response timed out. Try again.",
+        ) from None
+
+    except Exception as exc:
+
         logger.error(
-            "Gemini request failed: %s",
+            "Gemini request failed: %s after %.2fs",
             type(exc).__name__,
+            time.perf_counter() - gemini_started,
         )
 
         raise HTTPException(
             status_code=503,
             detail="Gemini temporarily unavailable",
         ) from None
-
