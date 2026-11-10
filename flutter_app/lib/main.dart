@@ -1,25 +1,17 @@
-
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const supabaseUrl = 'https://ubjihxctiujchazrlnyv.supabase.co';
 const supabaseKey = 'sb_publishable_qMh2cZsHZZsRP_ide1v7Hw_s8Tsep1S';
-
 const backendUrl = 'https://ashiwany-personal-ai-api.onrender.com';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-await Supabase.initialize(
-  url: supabaseUrl,
-  publishableKey: supabaseKey,
-);
-
-
+  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
   runApp(const PersonalAiApp());
 }
 
@@ -27,17 +19,12 @@ class PersonalAiApp extends StatelessWidget {
   const PersonalAiApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Personal AI Agent',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.indigo,
-      ),
-      home: const AuthGate(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Personal AI Agent',
+        theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
+        home: const AuthGate(),
+      );
 }
 
 class AuthGate extends StatefulWidget {
@@ -48,27 +35,28 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  StreamSubscription<AuthState>? subscription;
+
   @override
   void initState() {
     super.initState();
-
-    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+    subscription = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
       if (mounted) setState(() {});
     });
   }
 
   @override
+  void dispose() {
+    subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final session = Supabase.instance.client.auth.currentSession;
-
-    if (session == null) {
-      return const LoginPage();
-    }
-
-    return AgentHome(
-      key: ValueKey(session.user.id),
-      userId: session.user.id,
-    );
+    return session == null
+        ? const LoginPage()
+        : AgentHome(key: ValueKey(session.user.id), userId: session.user.id);
   }
 }
 
@@ -82,7 +70,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
   bool signup = false;
   bool loading = false;
   bool hidePassword = true;
@@ -96,86 +83,53 @@ class _LoginPageState extends State<LoginPage> {
 
   void showMessage(String message) {
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> authenticate() async {
     final email = emailController.text.trim();
     final password = passwordController.text;
-
     if (email.isEmpty || password.isEmpty) {
       showMessage('Enter your email and password.');
       return;
     }
-
     setState(() => loading = true);
-
     try {
       final auth = Supabase.instance.client.auth;
-
       if (signup) {
-        final response = await auth.signUp(
-          email: email,
-          password: password,
-        );
-
-        if (response.session == null) {
-          showMessage(
-            'Check your email for a verification link, '
-            'then return here and log in.',
-          );
-        } else {
-          showMessage('Account created successfully.');
-        }
+        final response = await auth.signUp(email: email, password: password);
+        showMessage(response.session == null
+            ? 'Check your email for a verification link, then log in.'
+            : 'Account created successfully.');
       } else {
-        await auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
+        await auth.signInWithPassword(email: email, password: password);
       }
     } on AuthException catch (error) {
       showMessage(error.message);
     } catch (_) {
-      showMessage('Something went wrong. Please try again.');
+      showMessage('Unable to connect. Please try again.');
     } finally {
       if (mounted) setState(() => loading = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.smart_toy_rounded,
-                    size: 76,
-                    color: Colors.indigo,
-                  ),
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.smart_toy_rounded,
+                      size: 76, color: Colors.indigo),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Personal AI Agent',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const Text('Personal AI Agent',
+                      style:
+                          TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text(
-                    signup
-                        ? 'Create your personal account'
-                        : 'Welcome back',
-                  ),
+                  Text(signup ? 'Create your personal account' : 'Welcome back'),
                   const SizedBox(height: 28),
                   TextField(
                     controller: emailController,
@@ -196,16 +150,11 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(
-                            () => hidePassword = !hidePassword,
-                          );
-                        },
-                        icon: Icon(
-                          hidePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
+                        onPressed: () =>
+                            setState(() => hidePassword = !hidePassword),
+                        icon: Icon(hidePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off),
                       ),
                     ),
                   ),
@@ -217,7 +166,10 @@ class _LoginPageState extends State<LoginPage> {
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: loading
-                            ? const CircularProgressIndicator()
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2))
                             : Text(signup ? 'Sign Up' : 'Log In'),
                       ),
                     ),
@@ -227,29 +179,21 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: loading
                         ? null
                         : () => setState(() => signup = !signup),
-                    child: Text(
-                      signup
-                          ? 'Already have an account? Log In'
-                          : 'New user? Create an account',
-                    ),
+                    child: Text(signup
+                        ? 'Already have an account? Log In'
+                        : 'New user? Create an account'),
                   ),
-                ],
+                ]),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class AgentHome extends StatefulWidget {
   final String userId;
-
-  const AgentHome({
-    super.key,
-    required this.userId,
-  });
+  const AgentHome({super.key, required this.userId});
 
   @override
   State<AgentHome> createState() => _AgentHomeState();
@@ -257,385 +201,351 @@ class AgentHome extends StatefulWidget {
 
 class _AgentHomeState extends State<AgentHome> {
   final chatInput = TextEditingController();
-  final itemInput = TextEditingController();
+  final noteInput = TextEditingController();
+  final taskInput = TextEditingController();
+  final client = Supabase.instance.client;
 
   int tab = 0;
-  bool loading = false;
-
-  List<Map<String, String>> chat = [];
-  List<String> notes = [];
+  bool sending = false;
+  bool refreshing = true;
+  bool savingNote = false;
+  bool savingTask = false;
+  List<Map<String, dynamic>> chat = [];
+  List<Map<String, dynamic>> notes = [];
   List<Map<String, dynamic>> tasks = [];
-
-  String get storagePrefix => 'agent_${widget.userId}_';
 
   @override
   void initState() {
     super.initState();
-    load();
+    refreshAll();
   }
 
   @override
   void dispose() {
     chatInput.dispose();
-    itemInput.dispose();
+    noteInput.dispose();
+    taskInput.dispose();
     super.dispose();
-  }
-
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    try {
-      final storedChat = jsonDecode(
-        prefs.getString('${storagePrefix}chat') ?? '[]',
-      ) as List;
-
-      final storedNotes = jsonDecode(
-        prefs.getString('${storagePrefix}notes') ?? '[]',
-      ) as List;
-
-      final storedTasks = jsonDecode(
-        prefs.getString('${storagePrefix}tasks') ?? '[]',
-      ) as List;
-
-      if (!mounted) return;
-
-      setState(() {
-        chat = storedChat
-            .map(
-              (e) => Map<String, String>.from(e as Map),
-            )
-            .toList();
-
-        notes = storedNotes.map((e) => e.toString()).toList();
-
-        tasks = storedTasks
-            .map(
-              (e) => Map<String, dynamic>.from(e as Map),
-            )
-            .toList();
-      });
-    } catch (_) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to load saved local data.'),
-        ),
-      );
-    }
-  }
-
-  Future<void> save() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString(
-      '${storagePrefix}chat',
-      jsonEncode(chat),
-    );
-    await prefs.setString(
-      '${storagePrefix}notes',
-      jsonEncode(notes),
-    );
-    await prefs.setString(
-      '${storagePrefix}tasks',
-      jsonEncode(tasks),
-    );
   }
 
   void message(String text) {
     if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
-    );
+  String readableError(Object error) {
+    if (error is PostgrestException) {
+      return 'Cloud storage error: ${error.message}';
+    }
+    if (error is AuthException) return error.message;
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  Future<void> refreshAll() async {
+    if (!mounted) return;
+    setState(() => refreshing = true);
+    try {
+      // Each query is also restricted by Supabase RLS.
+      final results = await Future.wait([
+        client.from('conversations').select('id,user_id,role,content,created_at')
+            .eq('user_id', widget.userId).order('created_at', ascending: true),
+        client.from('notes').select('id,user_id,content,created_at')
+            .eq('user_id', widget.userId).order('created_at', ascending: false),
+        client.from('tasks').select('id,user_id,title,is_completed,created_at')
+            .eq('user_id', widget.userId).order('created_at', ascending: false),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        chat = (results[0] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        notes = (results[1] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        tasks = (results[2] as List)
+            .map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      });
+    } catch (error) {
+      message('Unable to load cloud data. ${readableError(error)}');
+    } finally {
+      if (mounted) setState(() => refreshing = false);
+    }
   }
 
   Future<void> send() async {
     final text = chatInput.text.trim();
-
-    if (text.isEmpty || loading) return;
-
-    setState(() {
-      loading = true;
-      chat.add({'role': 'user', 'content': text});
-    });
-
-    chatInput.clear();
-    await save();
-
+    if (text.isEmpty || sending || refreshing) return;
+    setState(() => sending = true);
     try {
-      final auth = Supabase.instance.client.auth;
-      var session = auth.currentSession;
-
-      if (session == null) {
-        throw Exception('Please log in again.');
-      }
-
+      final session = client.auth.currentSession;
+      if (session == null) throw Exception('Please log in again.');
+      var accessToken = session.accessToken;
       if (session.isExpired) {
-        final refreshed = await auth.refreshSession();
-        session = refreshed.session;
-
-        if (session == null) {
+        final renewed = await client.auth.refreshSession();
+        if (renewed.session == null) {
           throw Exception('Session expired. Please log in again.');
         }
+        accessToken = renewed.session!.accessToken;
       }
 
-      final response = await http
-          .post(
-            Uri.parse('$backendUrl/chat'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${session.accessToken}',
-            },
-            body: jsonEncode({
-              'messages': chat.length > 12
-                  ? chat.sublist(chat.length - 12)
-                  : chat,
-            }),
-          )
-          .timeout(const Duration(seconds: 90));
+      // Persist the user's message before calling Gemini.
+      final inserted = await client.from('conversations').insert({
+        'user_id': widget.userId,
+        'role': 'user',
+        'content': text,
+      }).select('id,user_id,role,content,created_at').single();
+      if (!mounted) return;
+      setState(() => chat.add(Map<String, dynamic>.from(inserted)));
+      chatInput.clear();
+
+      final history = chat.map((e) => {
+        'role': e['role'],
+        'content': e['content'],
+      }).toList();
+      final recent = history.length > 12
+          ? history.sublist(history.length - 12)
+          : history;
+      final response = await http.post(
+        Uri.parse('$backendUrl/chat'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode({'messages': recent}),
+      ).timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 401) {
         throw Exception('Session expired. Please log in again.');
       }
-
       if (response.statusCode != 200) {
-        throw Exception(
-          'AI service error (${response.statusCode}). '
-          'Please try again.',
-        );
+        throw Exception('AI service error (${response.statusCode}). Please try again.');
       }
-
-      final data = jsonDecode(response.body);
-      final reply = data['reply']?.toString() ?? '';
-
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final reply = (data['reply'] ?? '').toString().trim();
+      final savedReply = await client.from('conversations').insert({
+        'user_id': widget.userId,
+        'role': 'assistant',
+        'content': reply.isEmpty ? 'No response generated.' : reply,
+      }).select('id,user_id,role,content,created_at').single();
       if (!mounted) return;
-
-      setState(() {
-        chat.add({
-          'role': 'assistant',
-          'content': reply.isEmpty
-              ? 'No response generated.'
-              : reply,
-        });
-      });
-
-      await save();
+      setState(() => chat.add(Map<String, dynamic>.from(savedReply)));
     } catch (error) {
-      message(error.toString().replaceFirst('Exception: ', ''));
+      message(readableError(error));
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) setState(() => sending = false);
     }
   }
 
   Future<void> addNote() async {
-    final text = itemInput.text.trim();
-    if (text.isEmpty) return;
+    final text = noteInput.text.trim();
+    if (text.isEmpty || savingNote || refreshing) return;
+    setState(() => savingNote = true);
+    try {
+      final row = await client.from('notes').insert({
+        'user_id': widget.userId,
+        'content': text,
+      }).select('id,user_id,content,created_at').single();
+      if (!mounted) return;
+      setState(() => notes.insert(0, Map<String, dynamic>.from(row)));
+      noteInput.clear();
+    } catch (error) {
+      message(readableError(error));
+    } finally {
+      if (mounted) setState(() => savingNote = false);
+    }
+  }
 
-    setState(() => notes.insert(0, text));
-    itemInput.clear();
-    await save();
+  Future<void> deleteNote(String id) async {
+    try {
+      await client.from('notes').delete()
+          .eq('id', id).eq('user_id', widget.userId);
+      if (!mounted) return;
+      setState(() => notes.removeWhere((e) => e['id'] == id));
+    } catch (error) {
+      message(readableError(error));
+    }
   }
 
   Future<void> addTask() async {
-    final text = itemInput.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() {
-      tasks.insert(0, {
+    final text = taskInput.text.trim();
+    if (text.isEmpty || savingTask || refreshing) return;
+    setState(() => savingTask = true);
+    try {
+      final row = await client.from('tasks').insert({
+        'user_id': widget.userId,
         'title': text,
-        'completed': false,
-      });
-    });
+        'is_completed': false,
+      }).select('id,user_id,title,is_completed,created_at').single();
+      if (!mounted) return;
+      setState(() => tasks.insert(0, Map<String, dynamic>.from(row)));
+      taskInput.clear();
+    } catch (error) {
+      message(readableError(error));
+    } finally {
+      if (mounted) setState(() => savingTask = false);
+    }
+  }
 
-    itemInput.clear();
-    await save();
+  Future<void> updateTask(String id, bool value) async {
+    try {
+      final row = await client.from('tasks').update({'is_completed': value})
+          .eq('id', id).eq('user_id', widget.userId)
+          .select('id,user_id,title,is_completed,created_at').single();
+      if (!mounted) return;
+      setState(() {
+        final index = tasks.indexWhere((e) => e['id'] == id);
+        if (index >= 0) tasks[index] = Map<String, dynamic>.from(row);
+      });
+    } catch (error) {
+      message(readableError(error));
+    }
+  }
+
+  Future<void> deleteTask(String id) async {
+    try {
+      await client.from('tasks').delete()
+          .eq('id', id).eq('user_id', widget.userId);
+      if (!mounted) return;
+      setState(() => tasks.removeWhere((e) => e['id'] == id));
+    } catch (error) {
+      message(readableError(error));
+    }
   }
 
   Future<void> logout() async {
     try {
-      await Supabase.instance.client.auth.signOut();
+      await client.auth.signOut();
     } catch (_) {
       message('Unable to log out. Please try again.');
     }
   }
 
-  Widget chatPage() {
-    return Column(
-      children: [
+  Widget chatPage() => Column(children: [
         Expanded(
           child: chat.isEmpty
-              ? const Center(
-                  child: Text('Ask your AI assistant anything!'),
-                )
+              ? const Center(child: Text('Ask your AI assistant anything!'))
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: chat.length,
                   itemBuilder: (context, index) {
                     final item = chat[index];
                     final isUser = item['role'] == 'user';
-
                     return Align(
                       alignment: isUser
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+                          ? Alignment.centerRight : Alignment.centerLeft,
                       child: Card(
                         color: isUser
-                            ? Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
+                            ? Theme.of(context).colorScheme.primaryContainer
                             : null,
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text(item['content'] ?? ''),
+                          child: Text((item['content'] ?? '').toString()),
                         ),
                       ),
                     );
                   },
                 ),
         ),
-        if (loading) const LinearProgressIndicator(),
+        if (sending) const LinearProgressIndicator(),
         SafeArea(
           top: false,
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: chatInput,
-                    maxLines: 3,
-                    minLines: 1,
-                    decoration: const InputDecoration(
-                      hintText: 'Ask something...',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => send(),
-                  ),
+            child: Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: chatInput,
+                  maxLines: 3,
+                  minLines: 1,
+                  decoration: const InputDecoration(
+                    hintText: 'Ask something...', border: OutlineInputBorder()),
+                  onSubmitted: (_) => send(),
                 ),
-                IconButton(
-                  onPressed: loading ? null : send,
-                  icon: const Icon(Icons.send),
-                ),
-              ],
+              ),
+              IconButton(
+                onPressed: sending || refreshing ? null : send,
+                icon: const Icon(Icons.send),
+              ),
+            ]),
+          ),
+        ),
+      ]);
+
+  Widget notesPage() => Column(children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            Expanded(child: TextField(
+              controller: noteInput,
+              decoration: const InputDecoration(
+                  hintText: 'Write a note', border: OutlineInputBorder()),
+              onSubmitted: (_) => addNote(),
+            )),
+            IconButton(
+              onPressed: savingNote || refreshing ? null : addNote,
+              icon: const Icon(Icons.add),
             ),
-          ),
+          ]),
         ),
-      ],
-    );
-  }
+        Expanded(child: ListView.builder(
+          itemCount: notes.length,
+          itemBuilder: (context, index) {
+            final note = notes[index];
+            return ListTile(
+              title: Text((note['content'] ?? '').toString()),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => deleteNote(note['id'].toString()),
+              ),
+            );
+          },
+        )),
+      ]);
 
-  Widget notesPage() {
-    return Column(
-      children: [
+  Widget tasksPage() => Column(children: [
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: itemInput,
-                  decoration: const InputDecoration(
-                    hintText: 'Write a note',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (_) => addNote(),
-                ),
-              ),
-              IconButton(
-                onPressed: addNote,
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
+          child: Row(children: [
+            Expanded(child: TextField(
+              controller: taskInput,
+              decoration: const InputDecoration(
+                  hintText: 'Add a task', border: OutlineInputBorder()),
+              onSubmitted: (_) => addTask(),
+            )),
+            IconButton(
+              onPressed: savingTask || refreshing ? null : addTask,
+              icon: const Icon(Icons.add_task),
+            ),
+          ]),
         ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: notes.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(notes[index]),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
-                    setState(() => notes.removeAt(index));
-                    await save();
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget tasksPage() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: itemInput,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a task',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (_) => addTask(),
-                ),
+        Expanded(child: ListView.builder(
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+            final id = task['id'].toString();
+            return CheckboxListTile(
+              title: Text((task['title'] ?? '').toString()),
+              value: task['is_completed'] == true,
+              onChanged: (value) => updateTask(id, value ?? false),
+              secondary: IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => deleteTask(id),
               ),
-              IconButton(
-                onPressed: addTask,
-                icon: const Icon(Icons.add_task),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, index) {
-              final task = tasks[index];
-
-              return CheckboxListTile(
-                title: Text(task['title']?.toString() ?? ''),
-                value: task['completed'] == true,
-                onChanged: (value) async {
-                  setState(() {
-                    task['completed'] = value ?? false;
-                  });
-                  await save();
-                },
-                secondary: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
-                    setState(() => tasks.removeAt(index));
-                    await save();
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
+            );
+          },
+        )),
+      ]);
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      chatPage(),
-      notesPage(),
-      tasksPage(),
-    ];
-
+    final pages = [chatPage(), notesPage(), tasksPage()];
     return Scaffold(
       appBar: AppBar(
         title: const Text('Personal AI Agent'),
         actions: [
+          IconButton(
+            tooltip: 'Refresh cloud data',
+            onPressed: refreshing || sending ? null : refreshAll,
+            icon: const Icon(Icons.refresh),
+          ),
           IconButton(
             tooltip: 'Log out',
             onPressed: logout,
@@ -643,28 +553,18 @@ class _AgentHomeState extends State<AgentHome> {
           ),
         ],
       ),
-      body: pages[tab],
+      body: refreshing
+          ? const Center(child: CircularProgressIndicator())
+          : pages[tab],
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab,
-        onDestinationSelected: (index) {
-          setState(() {
-            tab = index;
-            itemInput.clear();
-          });
-        },
+        onDestinationSelected: (index) => setState(() => tab = index),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'AI Chat',
-          ),
+              icon: Icon(Icons.chat_bubble_outline), label: 'AI Chat'),
           NavigationDestination(
-            icon: Icon(Icons.note_alt_outlined),
-            label: 'Notes',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.task_alt),
-            label: 'Tasks',
-          ),
+              icon: Icon(Icons.note_alt_outlined), label: 'Notes'),
+          NavigationDestination(icon: Icon(Icons.task_alt), label: 'Tasks'),
         ],
       ),
     );
