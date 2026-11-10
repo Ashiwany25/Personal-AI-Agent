@@ -4,9 +4,21 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+const supabaseUrl = 'https://ubjihxctiujchazrlnyv.supabase.co';
+const supabaseKey = 'sb_publishable_qMh2cZsHZZsRP_ide1v7Hw_s8Tsep1S';
+
+const backendUrl = 'https://ashiwany-personal-ai-api.onrender.com';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseKey,
+  );
+
   runApp(const PersonalAiApp());
 }
 
@@ -16,228 +28,69 @@ class PersonalAiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Personal AI Agent',
       debugShowCheckedModeBanner: false,
+      title: 'Personal AI Agent',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-        ),
         useMaterial3: true,
+        colorSchemeSeed: Colors.indigo,
       ),
-      home: const AgentHome(),
+      home: const AuthGate(),
     );
   }
 }
 
-class BackendSettings {
-  const BackendSettings({
-    required this.url,
-    required this.token,
-  });
-
-  final String url;
-  final String token;
-}
-
-class BackendSettingsDialog extends StatefulWidget {
-  const BackendSettingsDialog({
-    super.key,
-    required this.initialUrl,
-    required this.initialToken,
-  });
-
-  final String initialUrl;
-  final String initialToken;
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
 
   @override
-  State<BackendSettingsDialog> createState() =>
-      _BackendSettingsDialogState();
+  State<AuthGate> createState() => _AuthGateState();
 }
 
-class _BackendSettingsDialogState
-    extends State<BackendSettingsDialog> {
-  late final TextEditingController urlController;
-  late final TextEditingController tokenController;
-
+class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
 
-    urlController = TextEditingController(
-      text: widget.initialUrl,
-    );
-
-    tokenController = TextEditingController(
-      text: widget.initialToken,
-    );
-  }
-
-  @override
-  void dispose() {
-    urlController.dispose();
-    tokenController.dispose();
-    super.dispose();
-  }
-
-  void saveSettings() {
-    final url = urlController.text
-        .trim()
-        .replaceFirst(RegExp(r'/+$'), '');
-
-    final token = tokenController.text.trim();
-
-    final uri = Uri.tryParse(url);
-
-    if (uri == null ||
-        uri.scheme != 'https' ||
-        uri.host.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter a valid HTTPS backend URL.'),
-        ),
-      );
-      return;
-    }
-
-    if (token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter your app access token.'),
-        ),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop(
-      BackendSettings(url: url, token: token),
-    );
+    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('AI backend settings'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter your backend URL and app access token, '
-              'NOT your Gemini API key.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: urlController,
-              keyboardType: TextInputType.url,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'HTTPS backend URL',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: tokenController,
-              obscureText: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: const InputDecoration(
-                labelText: 'App access token',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: saveSettings,
-          child: const Text('Save'),
-        ),
-      ],
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session == null) {
+      return const LoginPage();
+    }
+
+    return AgentHome(
+      key: ValueKey(session.user.id),
+      userId: session.user.id,
     );
   }
 }
 
-class AgentHome extends StatefulWidget {
-  const AgentHome({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<AgentHome> createState() => _AgentHomeState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _AgentHomeState extends State<AgentHome> {
-  int tab = 0;
+class _LoginPageState extends State<LoginPage> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool signup = false;
   bool loading = false;
-
-  String url = '';
-  String token = '';
-
-  final chatInput = TextEditingController();
-  final noteInput = TextEditingController();
-  final taskInput = TextEditingController();
-
-  List<Map<String, String>> chat = [];
-  List<String> notes = [];
-  List<Map<String, dynamic>> tasks = [];
+  bool hidePassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    load();
-  }
-
-  Future<void> load() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final savedChat = jsonDecode(
-        prefs.getString('chat') ?? '[]',
-      ) as List;
-
-      final savedNotes = jsonDecode(
-        prefs.getString('notes') ?? '[]',
-      ) as List;
-
-      final savedTasks = jsonDecode(
-        prefs.getString('tasks') ?? '[]',
-      ) as List;
-
-      if (!mounted) return;
-
-      setState(() {
-        url = prefs.getString('url') ?? '';
-
-        chat = savedChat
-            .map((e) => Map<String, String>.from(e as Map))
-            .toList();
-
-        notes = List<String>.from(savedNotes);
-
-        tasks = savedTasks
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-      });
-    } catch (e) {
-      showMessage('Could not load saved data.');
-    }
-  }
-
-  Future<void> save() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.setString('url', url);
-      await prefs.setString('chat', jsonEncode(chat));
-      await prefs.setString('notes', jsonEncode(notes));
-      await prefs.setString('tasks', jsonEncode(tasks));
-    } catch (e) {
-      showMessage('Could not save data.');
-    }
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   void showMessage(String message) {
@@ -248,214 +101,423 @@ class _AgentHomeState extends State<AgentHome> {
     );
   }
 
-  Future<void> settings() async {
-    final result = await showDialog<BackendSettings>(
-      context: context,
-      builder: (dialogContext) {
-        return BackendSettingsDialog(
-          initialUrl: url,
-          initialToken: token,
-        );
-      },
-    );
+  Future<void> authenticate() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
 
-    if (!mounted || result == null) return;
-
-    setState(() {
-      url = result.url;
-      token = result.token;
-    });
-
-    await save();
-
-    showMessage('Backend settings saved.');
-  }
-
-  Future<void> send() async {
-    final message = chatInput.text.trim();
-
-    if (message.isEmpty || loading) return;
-
-    if (!url.startsWith('https://') || token.isEmpty) {
-      showMessage(
-        'Configure the backend URL and token in Settings.',
-      );
+    if (email.isEmpty || password.isEmpty) {
+      showMessage('Enter your email and password.');
       return;
     }
 
-    chatInput.clear();
+    setState(() => loading = true);
+
+    try {
+      final auth = Supabase.instance.client.auth;
+
+      if (signup) {
+        final response = await auth.signUp(
+          email: email,
+          password: password,
+        );
+
+        if (response.session == null) {
+          showMessage(
+            'Check your email for a verification link, '
+            'then return here and log in.',
+          );
+        } else {
+          showMessage('Account created successfully.');
+        }
+      } else {
+        await auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      }
+    } on AuthException catch (error) {
+      showMessage(error.message);
+    } catch (_) {
+      showMessage('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.smart_toy_rounded,
+                    size: 76,
+                    color: Colors.indigo,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Personal AI Agent',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    signup
+                        ? 'Create your personal account'
+                        : 'Welcome back',
+                  ),
+                  const SizedBox(height: 28),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: hidePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(
+                            () => hidePassword = !hidePassword,
+                          );
+                        },
+                        icon: Icon(
+                          hidePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: loading ? null : authenticate,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: loading
+                            ? const CircularProgressIndicator()
+                            : Text(signup ? 'Sign Up' : 'Log In'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: loading
+                        ? null
+                        : () => setState(() => signup = !signup),
+                    child: Text(
+                      signup
+                          ? 'Already have an account? Log In'
+                          : 'New user? Create an account',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AgentHome extends StatefulWidget {
+  final String userId;
+
+  const AgentHome({
+    super.key,
+    required this.userId,
+  });
+
+  @override
+  State<AgentHome> createState() => _AgentHomeState();
+}
+
+class _AgentHomeState extends State<AgentHome> {
+  final chatInput = TextEditingController();
+  final itemInput = TextEditingController();
+
+  int tab = 0;
+  bool loading = false;
+
+  List<Map<String, String>> chat = [];
+  List<String> notes = [];
+  List<Map<String, dynamic>> tasks = [];
+
+  String get storagePrefix => 'agent_${widget.userId}_';
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  @override
+  void dispose() {
+    chatInput.dispose();
+    itemInput.dispose();
+    super.dispose();
+  }
+
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    try {
+      final storedChat = jsonDecode(
+        prefs.getString('${storagePrefix}chat') ?? '[]',
+      ) as List;
+
+      final storedNotes = jsonDecode(
+        prefs.getString('${storagePrefix}notes') ?? '[]',
+      ) as List;
+
+      final storedTasks = jsonDecode(
+        prefs.getString('${storagePrefix}tasks') ?? '[]',
+      ) as List;
+
+      if (!mounted) return;
+
+      setState(() {
+        chat = storedChat
+            .map(
+              (e) => Map<String, String>.from(e as Map),
+            )
+            .toList();
+
+        notes = storedNotes.map((e) => e.toString()).toList();
+
+        tasks = storedTasks
+            .map(
+              (e) => Map<String, dynamic>.from(e as Map),
+            )
+            .toList();
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load saved local data.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> save() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      '${storagePrefix}chat',
+      jsonEncode(chat),
+    );
+    await prefs.setString(
+      '${storagePrefix}notes',
+      jsonEncode(notes),
+    );
+    await prefs.setString(
+      '${storagePrefix}tasks',
+      jsonEncode(tasks),
+    );
+  }
+
+  void message(String text) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text)),
+    );
+  }
+
+  Future<void> send() async {
+    final text = chatInput.text.trim();
+
+    if (text.isEmpty || loading) return;
 
     setState(() {
-      chat.add({
-        'role': 'user',
-        'content': message,
-      });
-
       loading = true;
+      chat.add({'role': 'user', 'content': text});
     });
 
+    chatInput.clear();
     await save();
 
     try {
-      final messages = chat.length > 12
-          ? chat.sublist(chat.length - 12)
-          : List<Map<String, String>>.from(chat);
+      final auth = Supabase.instance.client.auth;
+      var session = auth.currentSession;
+
+      if (session == null) {
+        throw Exception('Please log in again.');
+      }
+
+      if (session.isExpired) {
+        final refreshed = await auth.refreshSession();
+        session = refreshed.session;
+
+        if (session == null) {
+          throw Exception('Session expired. Please log in again.');
+        }
+      }
 
       final response = await http
           .post(
-            Uri.parse('$url/chat'),
+            Uri.parse('$backendUrl/chat'),
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
+              'Authorization': 'Bearer ${session.accessToken}',
             },
             body: jsonEncode({
-              'messages': messages,
+              'messages': chat.length > 12
+                  ? chat.sublist(chat.length - 12)
+                  : chat,
             }),
           )
-          .timeout(const Duration(seconds: 120));
+          .timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 401) {
-        throw Exception('Invalid backend access token.');
+        throw Exception('Session expired. Please log in again.');
       }
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Backend returned HTTP ${response.statusCode}.',
+          'AI service error (${response.statusCode}). '
+          'Please try again.',
         );
       }
 
-      final data =
-          jsonDecode(response.body) as Map<String, dynamic>;
-
-      final reply = data['reply'];
-
-      if (reply is! String || reply.trim().isEmpty) {
-        throw Exception('Empty AI response.');
-      }
+      final data = jsonDecode(response.body);
+      final reply = data['reply']?.toString() ?? '';
 
       if (!mounted) return;
 
       setState(() {
         chat.add({
           'role': 'assistant',
-          'content': reply,
+          'content': reply.isEmpty
+              ? 'No response generated.'
+              : reply,
         });
       });
-    } catch (e) {
-      showMessage('Chat failed: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          loading = false;
-        });
 
-        await save();
-      }
+      await save();
+    } catch (error) {
+      message(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  void addNote() {
-    final text = noteInput.text.trim();
-
+  Future<void> addNote() async {
+    final text = itemInput.text.trim();
     if (text.isEmpty) return;
 
-    setState(() {
-      notes.insert(0, text);
-      noteInput.clear();
-    });
-
-    save();
+    setState(() => notes.insert(0, text));
+    itemInput.clear();
+    await save();
   }
 
-  void addTask() {
-    final text = taskInput.text.trim();
-
+  Future<void> addTask() async {
+    final text = itemInput.text.trim();
     if (text.isEmpty) return;
 
     setState(() {
       tasks.insert(0, {
         'title': text,
-        'done': false,
+        'completed': false,
       });
-
-      taskInput.clear();
     });
 
-    save();
+    itemInput.clear();
+    await save();
+  }
+
+  Future<void> logout() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      message('Unable to log out. Please try again.');
+    }
   }
 
   Widget chatPage() {
     return Column(
       children: [
-        if (url.isEmpty || token.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-              'Connect your Gemini backend in Settings '
-              'to enable AI Chat.',
-            ),
-          ),
         Expanded(
-          child: ListView.builder(
-            itemCount: chat.length,
-            itemBuilder: (context, index) {
-              final message = chat[index];
+          child: chat.isEmpty
+              ? const Center(
+                  child: Text('Ask your AI assistant anything!'),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: chat.length,
+                  itemBuilder: (context, index) {
+                    final item = chat[index];
+                    final isUser = item['role'] == 'user';
 
-              final isUser = message['role'] == 'user';
-
-              return Align(
-                alignment: isUser
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Card(
-                  color: isUser
-                      ? Theme.of(context)
-                          .colorScheme
-                          .primaryContainer
-                      : null,
-                  margin: const EdgeInsets.all(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(message['content'] ?? ''),
-                  ),
+                    return Align(
+                      alignment: isUser
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Card(
+                        color: isUser
+                            ? Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(item['content'] ?? ''),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
         if (loading) const LinearProgressIndicator(),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: chatInput,
-                  decoration: const InputDecoration(
-                    hintText: 'Ask Gemini...',
-                    border: OutlineInputBorder(),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: chatInput,
+                    maxLines: 3,
+                    minLines: 1,
+                    decoration: const InputDecoration(
+                      hintText: 'Ask something...',
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => send(),
                   ),
-                  onSubmitted: (_) => send(),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Send message',
-                onPressed: loading ? null : send,
-                icon: const Icon(Icons.send),
-              ),
-              IconButton(
-                tooltip: 'Clear chat',
-                onPressed: loading
-                    ? null
-                    : () {
-                        setState(() {
-                          chat.clear();
-                        });
-                        save();
-                      },
-                icon: const Icon(Icons.delete_sweep),
-              ),
-            ],
+                IconButton(
+                  onPressed: loading ? null : send,
+                  icon: const Icon(Icons.send),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -466,14 +528,14 @@ class _AgentHomeState extends State<AgentHome> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
-                  controller: noteInput,
+                  controller: itemInput,
                   decoration: const InputDecoration(
-                    hintText: 'New note',
+                    hintText: 'Write a note',
                     border: OutlineInputBorder(),
                   ),
                   onSubmitted: (_) => addNote(),
@@ -481,7 +543,7 @@ class _AgentHomeState extends State<AgentHome> {
               ),
               IconButton(
                 onPressed: addNote,
-                icon: const Icon(Icons.add_circle),
+                icon: const Icon(Icons.add),
               ),
             ],
           ),
@@ -494,11 +556,9 @@ class _AgentHomeState extends State<AgentHome> {
                 title: Text(notes[index]),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () {
-                    setState(() {
-                      notes.removeAt(index);
-                    });
-                    save();
+                  onPressed: () async {
+                    setState(() => notes.removeAt(index));
+                    await save();
                   },
                 ),
               );
@@ -513,14 +573,14 @@ class _AgentHomeState extends State<AgentHome> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
-                  controller: taskInput,
+                  controller: itemInput,
                   decoration: const InputDecoration(
-                    hintText: 'New task',
+                    hintText: 'Add a task',
                     border: OutlineInputBorder(),
                   ),
                   onSubmitted: (_) => addTask(),
@@ -528,7 +588,7 @@ class _AgentHomeState extends State<AgentHome> {
               ),
               IconButton(
                 onPressed: addTask,
-                icon: const Icon(Icons.add_circle),
+                icon: const Icon(Icons.add_task),
               ),
             ],
           ),
@@ -537,26 +597,22 @@ class _AgentHomeState extends State<AgentHome> {
           child: ListView.builder(
             itemCount: tasks.length,
             itemBuilder: (context, index) {
-              return ListTile(
-                leading: Checkbox(
-                  value: tasks[index]['done'] == true,
-                  onChanged: (value) {
-                    setState(() {
-                      tasks[index]['done'] = value ?? false;
-                    });
-                    save();
-                  },
-                ),
-                title: Text(
-                  tasks[index]['title'] as String,
-                ),
-                trailing: IconButton(
+              final task = tasks[index];
+
+              return CheckboxListTile(
+                title: Text(task['title']?.toString() ?? ''),
+                value: task['completed'] == true,
+                onChanged: (value) async {
+                  setState(() {
+                    task['completed'] = value ?? false;
+                  });
+                  await save();
+                },
+                secondary: IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () {
-                    setState(() {
-                      tasks.removeAt(index);
-                    });
-                    save();
+                  onPressed: () async {
+                    setState(() => tasks.removeAt(index));
+                    await save();
                   },
                 ),
               );
@@ -569,55 +625,47 @@ class _AgentHomeState extends State<AgentHome> {
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      chatPage(),
+      notesPage(),
+      tasksPage(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Personal AI Agent'),
         actions: [
           IconButton(
-            tooltip: 'Backend settings',
-            onPressed: settings,
-            icon: const Icon(Icons.settings),
+            tooltip: 'Log out',
+            onPressed: logout,
+            icon: const Icon(Icons.logout),
           ),
         ],
       ),
-      body: IndexedStack(
-        index: tab,
-        children: [
-          chatPage(),
-          notesPage(),
-          tasksPage(),
-        ],
-      ),
+      body: pages[tab],
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab,
         onDestinationSelected: (index) {
           setState(() {
             tab = index;
+            itemInput.clear();
           });
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.chat_outlined),
+            icon: Icon(Icons.chat_bubble_outline),
             label: 'AI Chat',
           ),
           NavigationDestination(
-            icon: Icon(Icons.note_outlined),
+            icon: Icon(Icons.note_alt_outlined),
             label: 'Notes',
           ),
           NavigationDestination(
-            icon: Icon(Icons.check_circle_outline),
+            icon: Icon(Icons.task_alt),
             label: 'Tasks',
           ),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    chatInput.dispose();
-    noteInput.dispose();
-    taskInput.dispose();
-    super.dispose();
   }
 }
