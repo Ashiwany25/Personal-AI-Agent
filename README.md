@@ -1,6 +1,6 @@
 # Personal AI Agent — Website + Android + Telegram
 
-**Website:** https://personal-ai-agent-ddckhx3sqrmfdhpknnepkc.streamlit.app/
+**Website:** https://ashiwany-personal-ai-agent.streamlit.app
 
 This bundle includes a Streamlit website, a Flutter Android source app, a Gemini-backed API, a Telegram bot, a Colab GitHub uploader, a GitHub Actions APK build, and a Render backend blueprint. **This is a deployment-ready starter, not a production-ready public multi-user service.** Live deployments, Gemini model access, and Android builds are not verified.
 
