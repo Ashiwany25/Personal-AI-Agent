@@ -4,7 +4,6 @@
 import asyncio
 import logging
 import os
-import secrets
 import time
 
 from contextlib import asynccontextmanager
@@ -35,12 +34,6 @@ GEMINI_API_KEY = os.environ.get(
 GEMINI_MODEL = os.environ.get(
     "GEMINI_MODEL",
     "gemini-3.1-flash-lite",
-)
-
-# Temporary compatibility with older Android builds.
-# Must be removed before public release.
-APP_ACCESS_TOKEN = os.environ.get(
-    "APP_ACCESS_TOKEN", ""
 )
 
 GEMINI_TIMEOUT_SECONDS = 35
@@ -75,7 +68,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Personal AI Agent API",
-    version="1.2.0",
+    version="1.3.0",
     lifespan=lifespan,
 )
 
@@ -141,12 +134,8 @@ async def authenticate(
 
     access_token = access_token.strip()
 
-    # Temporary legacy compatibility.
-    if APP_ACCESS_TOKEN and secrets.compare_digest(
-        access_token,
-        APP_ACCESS_TOKEN,
-    ):
-        return "legacy-user"
+    # Only Supabase-authenticated users are accepted.
+    # Legacy APP_ACCESS_TOKEN authentication is removed.
 
     if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
         raise HTTPException(
@@ -164,7 +153,10 @@ async def authenticate(
         )
 
     except httpx.TimeoutException:
-        logger.warning("Supabase verification timed out")
+
+        logger.warning(
+            "Supabase verification timed out"
+        )
 
         raise HTTPException(
             status_code=503,
@@ -172,7 +164,10 @@ async def authenticate(
         ) from None
 
     except httpx.RequestError:
-        logger.warning("Supabase verification unavailable")
+
+        logger.warning(
+            "Supabase verification unavailable"
+        )
 
         raise HTTPException(
             status_code=503,
@@ -180,12 +175,14 @@ async def authenticate(
         ) from None
 
     if response.status_code in (401, 403):
+
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired login session",
         )
 
     if response.status_code != 200:
+
         logger.warning(
             "Supabase verification returned HTTP %d",
             response.status_code,
@@ -201,12 +198,14 @@ async def authenticate(
         user_id = user.get("id")
 
     except (ValueError, AttributeError):
+
         raise HTTPException(
             status_code=503,
             detail="Invalid authentication response",
         ) from None
 
     if not isinstance(user_id, str) or not user_id:
+
         raise HTTPException(
             status_code=401,
             detail="Invalid user identity",
@@ -227,7 +226,7 @@ async def chat(
 
     request_started = time.perf_counter()
 
-    # Verify user identity.
+    # Verify the user's Supabase session.
     await authenticate(authorization)
 
     auth_seconds = (
@@ -240,6 +239,7 @@ async def chat(
     )
 
     if not GEMINI_API_KEY:
+
         raise HTTPException(
             status_code=503,
             detail="Gemini backend not configured",
@@ -249,6 +249,7 @@ async def chat(
         message.role not in ("user", "assistant")
         for message in body.messages
     ):
+
         raise HTTPException(
             status_code=400,
             detail="Invalid message role",
@@ -273,6 +274,7 @@ async def chat(
     gemini_started = time.perf_counter()
 
     try:
+
         async def generate_reply():
 
             async with genai.Client(
