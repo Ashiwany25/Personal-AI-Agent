@@ -1,12 +1,57 @@
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Private keys and credentials
+*.pem
+*.key
+*.p12
+*.p8
+*.jks
+*.keystore
+service-account.json
+service_role.json
+*service-account*.json
+
+# Python
 .venv/
+venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
+
+# Local data
 data/
 *.db
+*.sqlite
+*.sqlite3
+
+# Streamlit
 .streamlit/secrets.toml
+
+# Flutter and Dart
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
 flutter_app/build/
 flutter_app/.flutter-plugins-dependencies
 flutter_app/android/local.properties
+
+# Android signing
+key.properties
+android/key.properties
+
+# macOS and editors
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
