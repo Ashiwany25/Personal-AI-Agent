@@ -1,0 +1,39 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/android-apk.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Create Android platform files
+        working-directory: flutter_app
+        run: flutter create --platforms android --project-name personal_ai_agent .
+      - name: Get Flutter packages
+        working-directory: flutter_app
+        run: flutter pub get
+      - name: Analyze Flutter code
+        working-directory: flutter_app
+        run: flutter analyze
+      - name: Test Flutter code
+        working-directory: flutter_app
+        run: flutter test
+      - name: Build APK
+        working-directory: flutter_app
+        run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: personal-ai-agent-android-debug-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error

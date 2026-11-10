@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+*.db
+.streamlit/secrets.toml
+.dart_tool/
+flutter_app/build/
+flutter_app/.flutter-plugins-dependencies
+flutter_app/android/local.properties
