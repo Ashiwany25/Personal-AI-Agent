@@ -21,29 +21,49 @@ jobs:
           channel: stable
           cache: true
 
-      
       - name: Generate Android project
         working-directory: flutter_app
-        run: flutter create --platforms android --project-name personal_ai_agent --org com.ashiwany .
+        run: |
+          flutter create \
+            --platforms android \
+            --project-name personal_ai_agent \
+            --org com.ashiwany \
+            .
 
       - name: Install dependencies
         working-directory: flutter_app
         run: flutter pub get
 
-      - name: Analyze code
+      - name: Analyze Flutter code
         working-directory: flutter_app
         run: flutter analyze
 
-      - name: Run tests
+      - name: Run Flutter tests
         working-directory: flutter_app
         run: flutter test
+
+      - name: Verify signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_PASSWORD"
+          test -n "$KEY_ALIAS"
 
       - name: Restore Android signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > flutter_app/android/app/release-keystore.jks
-          chmod 600 flutter_app/android/app/release-keystore.jks
+          printf '%s' "$KEYSTORE_BASE64" \
+            | base64 --decode \
+            > flutter_app/android/app/release-keystore.jks
+
+          chmod 600 \
+            flutter_app/android/app/release-keystore.jks
 
       - name: Configure release signing
         env:
@@ -58,49 +78,69 @@ jobs:
           path = Path("android/app/build.gradle.kts")
           content = path.read_text()
 
-          content = (
-              'import java.util.Properties\n'
-              'import java.io.FileInputStream\n\n'
-              + content
+          imports = (
+              "import java.util.Properties\n"
+              "import java.io.FileInputStream\n\n"
           )
 
+          content = imports + content
+
           marker = "android {"
-          signing = '''
+          assert marker in content, "Android block missing"
+
+          signing_properties = '''
           val keystoreProperties = Properties()
           val keystorePropertiesFile = rootProject.file("key.properties")
-          if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-          }
+          keystoreProperties.load(
+              FileInputStream(keystorePropertiesFile)
+          )
 
           '''
-          content = content.replace(marker, signing + marker, 1)
 
           content = content.replace(
-              "signingConfigs {",
-              "signingConfigs {",
+              marker,
+              signing_properties + marker,
               1
           )
 
-          content = content.replace(
-              "buildTypes {",
-              '''
+          marker = "    buildTypes {"
+          assert marker in content, "Build types block missing"
+
+          signing_config = '''
               signingConfigs {
                   create("release") {
-                      keyAlias = keystoreProperties["keyAlias"] as String
-                      keyPassword = keystoreProperties["keyPassword"] as String
-                      storeFile = file(keystoreProperties["storeFile"] as String)
-                      storePassword = keystoreProperties["storePassword"] as String
+                      keyAlias =
+                          keystoreProperties["keyAlias"] as String
+                      keyPassword =
+                          keystoreProperties["keyPassword"] as String
+                      storeFile = file(
+                          keystoreProperties["storeFile"] as String
+                      )
+                      storePassword =
+                          keystoreProperties["storePassword"] as String
                   }
               }
 
-              buildTypes {
-              ''',
+          '''
+
+          content = content.replace(
+              marker,
+              signing_config + marker,
               1
           )
 
+          debug_signing = (
+              'signingConfig = signingConfigs.getByName("debug")'
+          )
+
+          assert debug_signing in content, (
+              "Debug signing configuration missing"
+          )
+
           content = content.replace(
-              "signingConfig = signingConfigs.getByName(\"debug\")",
-              "signingConfig = signingConfigs.getByName(\"release\")"
+              debug_signing,
+              'signingConfig = signingConfigs.getByName("release")',
+              1
           )
 
           path.write_text(content)
@@ -119,7 +159,12 @@ jobs:
         working-directory: flutter_app
         run: flutter build apk --release
 
-      - name: Upload signed APK
+      - name: Verify release APK exists
+        run: |
+          test -s \
+            flutter_app/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload signed release APK
         uses: actions/upload-artifact@v4
         with:
           name: personal-ai-agent-signed-release-apk
