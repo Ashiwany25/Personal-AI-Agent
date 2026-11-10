@@ -1,169 +1,221 @@
 
+<div align="center">
+
 # 🤖 Personal AI Agent
 
-### Your AI-Powered Personal Assistant for Android
+### An AI-Powered Productivity Assistant for Android
 
-[![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://www.android.com/)
-[![Flutter](https://img.shields.io/badge/Flutter-Dart-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
-[![Python](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Supabase](https://img.shields.io/badge/Database-Supabase-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
-[![GitHub Release](https://img.shields.io/github/v/release/Ashiwany25/Personal-AI-Agent)](https://github.com/Ashiwany25/Personal-AI-Agent/releases)
+**Chat with Gemini AI. Organize notes. Manage tasks. Sync securely across sessions.**
 
-**Personal AI Agent** is a cloud-connected Android application built using Flutter, FastAPI, Google Gemini, and Supabase.
+[![Flutter](https://img.shields.io/badge/Flutter-Mobile%20App-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Gemini](https://img.shields.io/badge/Google-Gemini%20AI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
 
-It combines an AI-powered chatbot, personal notes, and task management in one mobile application, with secure authentication and cloud synchronization.
+[![Release](https://img.shields.io/github/v/release/Ashiwany25/Personal-AI-Agent?style=flat-square)](https://github.com/Ashiwany25/Personal-AI-Agent/releases)
+[![Android](https://img.shields.io/badge/Platform-Android-green?style=flat-square)](https://www.android.com)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/Ashiwany25/Personal-AI-Agent/android-release.yml?style=flat-square&label=Release%20Build)](https://github.com/Ashiwany25/Personal-AI-Agent/actions)
 
----
+**[📥 Download Android App](https://github.com/Ashiwany25/Personal-AI-Agent/releases/tag/v1.0.0)** ·
+**[📖 Documentation](#-getting-started)** ·
+**[🏗️ Architecture](#%EF%B8%8F-system-architecture)** ·
+**[🐛 Report a Bug](https://github.com/Ashiwany25/Personal-AI-Agent/issues)**
 
-## 📱 Download Android App
-
-### [⬇️ Download Personal AI Agent v1.0.0](https://github.com/Ashiwany25/Personal-AI-Agent/releases/tag/v1.0.0)
-
-**Latest release:** v1.0.0
-
-**Platform:** Android
-
-**Distribution:** GitHub Releases
-
-### Installation Instructions
-
-1. Open the download link above.
-2. Expand the **Assets** section.
-3. Download the attached `.apk` file.
-4. Open the APK on your Android phone.
-5. Allow installation from your browser or file manager if prompted.
-6. Tap **Install**.
-7. Open **Personal AI Agent**.
-8. Create an account or log in.
-
-> An internet connection is required for authentication, AI chat, and cloud synchronization.
-
-> This application is currently distributed through GitHub rather than the Google Play Store.
+</div>
 
 ---
 
-## ✨ Key Features
+## 📌 Overview
 
-### 🧠 Gemini AI Chat
+**Personal AI Agent** is a full-stack Android productivity application that integrates Google Gemini AI with personal note-taking and task management.
 
-- Chat with Google's Gemini AI.
-- Ask questions and receive AI-generated responses.
-- Use a conversational interface within the Android app.
-- Send requests through a FastAPI backend.
-- Apply server-side AI usage limits.
+The project demonstrates how to build, secure, deploy, test, and distribute a cloud-connected AI application using modern mobile and backend technologies.
 
-### 🔐 Secure Authentication
+Rather than exposing AI credentials inside the Android application, requests are routed through a FastAPI backend that handles authentication, usage limits, and Gemini API communication.
 
-- Email and password authentication.
-- User registration and login.
-- Supabase Auth integration.
-- Authenticated access to personal information.
-- Separate data access for different users.
+### The Problem
 
-### 📝 Personal Notes
+People often switch between separate applications for:
 
-- Create and save notes.
-- View previously saved notes.
-- Store notes in Supabase.
-- Retrieve notes after restarting the application.
-- Keep notes associated with the authenticated user.
+- Asking AI-powered questions
+- Maintaining personal notes
+- Tracking everyday tasks
+- Accessing their information across sessions
 
-### ✅ Task Management
+This creates a fragmented productivity experience.
 
-- Create personal tasks.
-- View saved tasks.
-- Mark tasks as completed.
-- Synchronize task data with Supabase.
-- Maintain task records across app sessions.
+### The Solution
 
-### ☁️ Cloud Synchronization
+Personal AI Agent brings these functions together in one Android application with secure authentication, cloud storage, and an AI-powered conversational interface.
 
-- Cloud-based storage for notes and tasks.
-- Data persistence after closing and reopening the app.
-- Account-based access to stored information.
-- Supabase PostgreSQL database integration.
+---
 
-### 🛡️ Backend Security
+## 📱 Download the App
 
-- Server-side Gemini API integration.
-- Supabase authentication token validation.
-- Row Level Security (RLS) for user data.
-- Server-side AI rate limiting.
-- Sensitive credentials stored in deployment environment variables.
-- Android signing credentials stored in GitHub Actions secrets.
+### 🚀 Version 1.0.0 — Android Release
+
+**[⬇️ DOWNLOAD PERSONAL AI AGENT APK](https://github.com/Ashiwany25/Personal-AI-Agent/releases/tag/v1.0.0)**
+
+| Detail | Information |
+|---|---|
+| Platform | Android |
+| Current documented version | v1.0.0 |
+| Distribution | GitHub Releases |
+| Account | Required |
+| Internet | Required for cloud functionality |
+| Backend | FastAPI on Render |
+| Database | Supabase PostgreSQL |
+
+### Installation
+
+1. Open the download link.
+2. Expand **Assets**.
+3. Download the `.apk` file.
+4. Open the APK on your Android device.
+5. Allow installation from the chosen browser or file manager if prompted.
+6. Install and launch Personal AI Agent.
+7. Register or sign in.
+
+> **Security note:** Download the APK only from the official GitHub Releases page. Android may warn about applications installed outside Google Play.
+
+---
+
+## ✨ Features
+
+### 🧠 1. Gemini AI Chat
+
+A conversational interface powered by Google Gemini.
+
+- Ask questions using natural language
+- Receive AI-generated responses
+- Communicate through a dedicated backend
+- Authenticate requests using Supabase
+- Apply server-side AI usage limits
+- Handle API quota restrictions
+
+**Technical flow:**
+
+`Flutter → FastAPI → Authentication → Rate Limiter → Gemini API → Flutter`
+
+### 🔐 2. User Authentication
+
+Account-based authentication powered by Supabase Auth.
+
+- Email/password signup and login
+- Authenticated application sessions
+- Account-specific access to cloud data
+- Supabase access tokens for protected API requests
+
+### 📝 3. Cloud-Synchronized Notes
+
+Manage personal notes through the Android application.
+
+- Create notes
+- Save notes to Supabase
+- Retrieve saved notes
+- Preserve notes across application restarts
+- Restrict access to the authenticated account
+
+### ✅ 4. Task Management
+
+Organize personal tasks in one place.
+
+- Create tasks
+- View existing tasks
+- Mark tasks as completed
+- Save task state in the cloud
+- Retrieve task data after restarting the application
+
+### ☁️ 5. Persistent Cloud Storage
+
+Supabase PostgreSQL stores application data.
+
+- Persistent notes and tasks
+- User-associated records
+- Account-level database access policies
+- Data synchronization across application sessions
+
+### 🛡️ 6. Backend Security and Rate Limiting
+
+The FastAPI backend provides a controlled interface to Gemini.
+
+- Validates authenticated requests
+- Keeps the Gemini API key on the server
+- Checks AI request quotas
+- Rejects requests exceeding configured limits
+- Uses environment variables for private credentials
 
 ---
 
 ## 🏗️ System Architecture
 
-```text
-                  ┌───────────────────────┐
-                  │     Android User      │
-                  └───────────┬───────────┘
-                              │
-                              ▼
-                  ┌───────────────────────┐
-                  │      Flutter App      │
-                  │                       │
-                  │  • Login / Signup     │
-                  │  • Gemini AI Chat     │
-                  │  • Notes              │
-                  │  • Tasks              │
-                  └───────────┬───────────┘
-                              │
-                 ┌────────────┴────────────┐
-                 │                         │
-                 ▼                         ▼
-     ┌───────────────────────┐  ┌──────────────────────┐
-     │       Supabase        │  │   FastAPI Backend    │
-     │                       │  │   Hosted on Render   │
-     │ • Authentication      │  │                      │
-     │ • PostgreSQL Database │  │ • Token Validation   │
-     │ • Row Level Security  │  │ • AI Rate Limiting   │
-     │ • Cloud Storage       │  │ • Gemini Requests    │
-     └───────────────────────┘  └──────────┬───────────┘
-                                          │
-                                          ▼
-                               ┌──────────────────────┐
-                               │    Google Gemini     │
-                               │       AI API         │
-                               └──────────────────────┘
+```mermaid
+flowchart TD
+    U[Android User] --> F[Flutter Mobile Application]
+
+    F --> A[Supabase Authentication]
+    F --> D[Supabase PostgreSQL]
+    F --> B[FastAPI Backend on Render]
+
+    A --> R[Authenticated Session]
+    D --> N[Notes and Tasks]
+
+    B --> V[Token Validation]
+    V --> L[Server-Side Rate Limiting]
+    L --> G[Google Gemini API]
+    G --> B
+    B --> F
 ```
 
-### How It Works
+### Architecture Decisions
 
-1. The user opens the Flutter Android application.
-2. Supabase authenticates the user.
-3. Notes and tasks are stored in Supabase PostgreSQL.
-4. The user submits a message through AI Chat.
-5. Flutter sends an authenticated request to the FastAPI backend.
-6. The backend validates the user and checks AI usage limits.
-7. The backend communicates with the Gemini API.
-8. The AI response is returned to the Android application.
+| Decision | Reason |
+|---|---|
+| Flutter | Cross-platform development framework with native Android deployment |
+| FastAPI | Lightweight Python framework for AI API integration |
+| Supabase Auth | Managed authentication and access-token support |
+| PostgreSQL | Persistent relational storage |
+| Row Level Security | Database-enforced user data isolation |
+| Gemini API | Generative AI response capability |
+| Render | Cloud hosting for the Python backend |
+| GitHub Actions | Repeatable automated APK builds |
+| Release signing | Android application authenticity and update continuity |
+
+### AI Request Lifecycle
+
+1. The user signs in through Supabase.
+2. Flutter obtains an authenticated session.
+3. The user sends a message through AI Chat.
+4. Flutter sends the request to the FastAPI backend.
+5. The backend validates the access token.
+6. The backend checks the configured request quota.
+7. An allowed request is forwarded to Gemini.
+8. The generated response is returned to the application.
+
+This separation keeps the private Gemini API key out of the distributed Android APK.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Mobile frontend | Flutter | Android application |
-| Programming language | Dart | Mobile app development |
-| Backend | Python | Server-side application logic |
-| API framework | FastAPI | REST API |
-| AI model | Google Gemini | AI-generated responses |
-| Authentication | Supabase Auth | User login and registration |
-| Database | Supabase PostgreSQL | Notes, tasks, and application data |
-| Database security | Supabase RLS | User-level data access control |
-| Backend hosting | Render | Cloud API deployment |
-| Version control | Git and GitHub | Source code management |
-| CI/CD | GitHub Actions | Android APK builds |
-| Android signing | Java Keytool | Release signing key |
+| Component | Technology |
+|---|---|
+| Mobile framework | Flutter |
+| Mobile language | Dart |
+| Backend language | Python |
+| API framework | FastAPI |
+| Generative AI | Google Gemini |
+| Authentication | Supabase Auth |
+| Database | PostgreSQL |
+| Database access control | Supabase Row Level Security |
+| Backend deployment | Render |
+| CI/CD | GitHub Actions |
+| Release signing | Java Keytool / Android Gradle |
+| Source control | Git and GitHub |
 
 ---
 
-## 📁 Project Structure
+## 📂 Repository Structure
 
 ```text
 Personal-AI-Agent/
@@ -179,9 +231,7 @@ Personal-AI-Agent/
 ├── flutter_app/
 │   ├── lib/
 │   │   └── main.dart
-│   │
 │   ├── test/
-│   │
 │   ├── pubspec.yaml
 │   └── README.md
 │
@@ -189,17 +239,17 @@ Personal-AI-Agent/
 └── README.md
 ```
 
-> This structure shows the main application components. Additional configuration and dependency files may be present.
+The diagram highlights the principal application files.
 
-> Android platform files are generated during the GitHub Actions build process.
+**Build note:** Android platform files are generated during GitHub Actions builds rather than maintained as a committed Android project directory.
 
 ---
 
 ## 🔌 Backend API
 
-The backend is built using FastAPI and deployed on Render.
+The backend is implemented with FastAPI and hosted on Render.
 
-**Base URL:**
+**Backend:**
 
 https://ashiwany-personal-ai-api.onrender.com
 
@@ -207,92 +257,70 @@ https://ashiwany-personal-ai-api.onrender.com
 
 https://ashiwany-personal-ai-api.onrender.com/docs
 
-### API Endpoints
+**Health endpoint:**
 
-| Method | Endpoint | Description |
+https://ashiwany-personal-ai-api.onrender.com/health
+
+### Available Endpoints
+
+| Method | Route | Description |
 |---|---|---|
-| GET | `/health` | Backend health check |
-| POST | `/chat` | Authenticated Gemini AI chat |
+| `GET` | `/health` | Check backend health |
+| `POST` | `/chat` | Process authenticated AI chat requests |
 
-### AI Chat Request Flow
+The root URL (`/`) is not intended as a website homepage. A `404 Not Found` response at that path does not necessarily indicate a backend failure.
 
-```text
-Flutter App
-    |
-    | Authenticated POST /chat
-    |
-    v
-FastAPI Backend
-    |
-    | Validate Supabase access token
-    |
-    v
-Check AI Usage Limits
-    |
-    | Request allowed
-    |
-    v
-Google Gemini API
-    |
-    | AI response
-    |
-    v
-Flutter Chat Interface
-```
+### API Rate Limiting
 
-### Rate Limiting
+The backend enforces AI request quotas using server-side logic and database-backed usage records.
 
-The backend uses server-side rate limiting to help prevent excessive AI API usage.
+Requests exceeding a configured limit can receive:
 
-When a configured usage limit is exceeded, the API can return:
+`HTTP 429 Too Many Requests`
 
-```text
-HTTP 429 Too Many Requests
-```
-
-Rate limiting helps control API usage but does not eliminate provider quotas or service limits.
+This protects the AI service from excessive usage and helps manage provider quotas.
 
 ---
 
-## 🗄️ Database Design
+## 🗄️ Database and Authentication
 
-The project uses Supabase PostgreSQL.
+Supabase provides authentication and PostgreSQL storage.
 
-### Main Tables
+### Database Tables
 
-| Table | Purpose |
+| Table | Responsibility |
 |---|---|
-| `notes` | Stores personal notes |
-| `tasks` | Stores personal tasks |
-| `conversations` | Stores conversation-related records |
-| `ai_rate_limits` | Tracks AI request usage |
+| `notes` | Personal note records |
+| `tasks` | Task records and completion state |
+| `conversations` | Conversation-related records |
+| `ai_rate_limits` | AI request quota tracking |
 
-### Row Level Security
+### Data Isolation
 
-Supabase Row Level Security policies restrict access to user-owned records.
+Row Level Security policies are used to restrict access to user-owned records.
 
-This helps ensure that:
+The intended security model ensures that:
 
-- Users access their own notes.
-- Users access their own tasks.
-- Records are associated with authenticated accounts.
-- One user cannot retrieve another user's private records through permitted database operations.
+- A user accesses their own notes.
+- A user accesses their own tasks.
+- Cloud records are associated with an authenticated account.
+- Access to another user's private data is denied.
 
-Multi-user privacy was tested using separate accounts.
+This behavior was tested using two separate accounts.
 
 ---
 
-## 💻 Running the Project Locally
+## 🚀 Getting Started
 
 ### Prerequisites
 
-Install the following:
+Install:
 
 - Git
 - Python
 - Flutter SDK
 - Android SDK
-- A compatible Android device or emulator
+- Android device or emulator
 
 ### 1. Clone the Repository
 
@@ -302,9 +330,7 @@ git clone https://github.com/Ashiwany25/Personal-AI-Agent.git
 cd Personal-AI-Agent
 ```
 
-### 2. Set Up the Backend
-
-Create and activate a Python virtual environment:
+### 2. Configure the Python Environment
 
 ```bash
 python3 -m venv .venv
@@ -312,51 +338,57 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Install the backend dependencies using the requirements file if provided by the repository:
+Install the project's Python dependencies using the requirements file supplied in the repository.
+
+For example, if the backend requirements file is located in `api/`:
 
 ```bash
 pip install -r api/requirements.txt
 ```
 
-Configure the required environment variables in your local environment.
+### 3. Configure Backend Environment Variables
 
-Example variable names:
+The backend expects the following configuration:
 
-```env
+```dotenv
 SUPABASE_URL=your_supabase_project_url
-SUPABASE_PUBLISHABLE_KEY=your_publishable_key
+SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 SUPABASE_SECRET_KEY=your_server_side_secret
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=your_gemini_model
+GEMINI_MODEL=your_supported_gemini_model
 ```
 
-Never commit real secret values to GitHub.
+Use your own Supabase and Gemini credentials.
 
-Start the API:
+**Never commit real secret values to the repository.**
+
+### 4. Run the Backend
+
+From the repository root:
 
 ```bash
 uvicorn api.main:app --reload
 ```
 
-The development API normally runs at:
+The development server normally runs at:
 
-http://127.0.0.1:8000
+`http://127.0.0.1:8000`
 
-### 3. Set Up Flutter
+API documentation:
+
+`http://127.0.0.1:8000/docs`
+
+### 5. Configure Flutter
 
 ```bash
 cd flutter_app
 
 flutter pub get
-```
 
-Check your Flutter installation:
-
-```bash
 flutter doctor
 ```
 
-Generate Android platform files if they are not already present:
+If Android platform files are missing:
 
 ```bash
 flutter create \
@@ -366,183 +398,243 @@ flutter create \
   .
 ```
 
-Run the application:
+Ensure the Flutter application is configured with the appropriate Supabase project and reachable backend URL.
+
+### 6. Run the Android Application
 
 ```bash
 flutter run
 ```
 
-> The Flutter app must be configured to use an accessible backend and Supabase project. Local development may require configuration changes depending on the device or emulator.
+Connect an Android device or start an emulator before running the command.
 
 ---
 
-## 📦 Android APK Build and Deployment
+## 🔄 CI/CD and Android Releases
 
-Android APKs are built using GitHub Actions.
+The repository contains separate GitHub Actions workflows for debug and signed release builds.
 
-### Debug Build
+### Debug Workflow
 
-Workflow:
+File:
 
-```text
-.github/workflows/android-apk.yml
-```
+`.github/workflows/android-apk.yml`
 
-The debug workflow:
+Responsibilities:
 
-1. Checks out the source code.
-2. Installs Flutter.
-3. Generates Android platform files.
-4. Installs dependencies.
-5. Runs static analysis.
-6. Runs Flutter tests.
-7. Builds a debug APK.
-8. Uploads the APK as a GitHub Actions artifact.
+- Install Flutter
+- Generate Android platform files
+- Install packages
+- Run Flutter analysis
+- Run automated tests
+- Build a debug APK
+- Upload the build artifact
 
-### Signed Release Build
+### Release Workflow
 
-Workflow:
+File:
 
-```text
-.github/workflows/android-release.yml
-```
+`.github/workflows/android-release.yml`
 
-The release workflow:
+Responsibilities:
 
-1. Generates Android platform files.
-2. Configures Android internet permission.
-3. Runs analysis and tests.
-4. Restores the signing key from GitHub Actions secrets.
-5. Configures release signing.
-6. Builds a release APK.
-7. Uploads the signed APK as an artifact.
+- Generate the Android project
+- Add Android internet permission
+- Validate the Flutter project
+- Restore the signing keystore from encrypted secrets
+- Configure Gradle release signing
+- Build a release APK
+- Upload the APK as a workflow artifact
 
-### Signing Secrets
+### Release Signing
 
-The release workflow uses:
+Android release signing uses these GitHub Actions secrets:
 
-```text
-ANDROID_KEYSTORE_BASE64
-ANDROID_KEYSTORE_PASSWORD
-ANDROID_KEY_PASSWORD
-ANDROID_KEY_ALIAS
-```
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_PASSWORD`
+- `ANDROID_KEY_ALIAS`
 
-These values must be configured as GitHub Actions repository secrets.
+The signing key and passwords are not intended to be stored in public source files.
 
-**Never commit the signing keystore or passwords to the repository.**
+**Android application ID:**
 
-### Application ID
+`com.ashiwany.personal_ai_agent`
 
-```text
-com.ashiwany.personal_ai_agent
-```
+Maintaining the same application ID and signing key is important for future Android updates.
 
-The application ID and release signing key should remain consistent for future app updates.
+### Public Distribution
+
+The tested APK is distributed through GitHub Releases.
+
+**[View Releases](https://github.com/Ashiwany25/Personal-AI-Agent/releases)**
 
 ---
 
 ## 🧪 Testing and Validation
 
-The following functionality was tested during development and release preparation.
+The application was tested during development and release preparation.
 
-| Test | Result |
+### Verified Functional Tests
+
+| Test Case | Result |
 |---|---|
-| Flutter static analysis | Passed during successful build |
-| Flutter automated tests | Passed during successful build |
-| Debug APK build | Passed |
+| Android debug APK build | Passed |
 | Signed release APK build | Passed |
 | Release APK installation | Passed |
-| Supabase user login | Passed |
+| User login | Passed |
 | Gemini AI response | Passed |
-| Note creation and saving | Passed |
+| Note creation and persistence | Passed |
 | Task creation and completion | Passed |
-| Cloud persistence after restart | Passed |
-| Supabase record synchronization | Passed |
-| Multi-user data isolation | Passed |
-| AI request rate-limit rejection | Passed |
-| Public APK download | Verified |
+| Cloud synchronization | Passed |
+| Persistence after application restart | Passed |
+| Two-account data isolation | Passed |
+| AI rate-limit rejection | Passed |
+| Public APK download | Passed |
 
-### Tested Platform
+### Real-Device Testing
 
-- Samsung Android smartphone
-- Signed release APK
-- Supabase cloud backend
-- Render-hosted FastAPI service
+The release APK was installed and tested on a Samsung Android smartphone.
 
-> These results reflect the completed development tests. They do not guarantee compatibility with every Android device or uninterrupted cloud service availability.
+The initial release build revealed a network connectivity issue caused by missing Android internet permission.
 
----
+The release workflow was updated to include the permission, the APK was rebuilt, and authentication and cloud-connected features were successfully retested.
 
-## 🔒 Security Considerations
+This illustrates an important development practice:
 
-The project incorporates several security measures:
+**Build → Test → Identify Failure → Fix → Rebuild → Verify**
 
-- Supabase-based user authentication.
-- Access-token validation for protected AI requests.
-- Database Row Level Security.
-- Server-side Gemini API key storage.
-- AI request rate limiting.
-- GitHub Actions encrypted signing secrets.
-- `.gitignore` rules for credentials and private files.
+### Testing Limitations
 
-### Important Security Practices
+Successful functional tests do not establish:
 
-- Do not embed private API keys in Flutter code.
-- Do not commit `.env` files containing secrets.
-- Do not publish Android signing keystores.
-- Do not expose Supabase server-side secret keys.
-- Rotate credentials if they are accidentally exposed.
-- Review dependency and backend security before wider production use.
+- Compatibility with every Android device
+- Complete automated test coverage
+- Security against every attack
+- Guaranteed AI service uptime
+- Production scalability under heavy traffic
+
+Additional testing is recommended before large-scale distribution.
 
 ---
 
-## ⚠️ Current Limitations
+## 🔒 Security Design
 
-- An internet connection is required for cloud features.
-- AI responses depend on Gemini API availability.
-- Free-tier API usage quotas may limit requests.
-- Render Free services may experience startup delays.
-- Public distribution is through GitHub Releases, not the Play Store.
-- Android compatibility has not been exhaustively tested across devices.
-- AI responses may be inaccurate and should be verified for important decisions.
+Security was considered at the application, backend, database, and build levels.
+
+### Application Security
+
+- Supabase authentication
+- Authenticated access to user data
+- No intended embedding of private Gemini credentials in the APK
+
+### Backend Security
+
+- Authentication token validation
+- Server-side AI requests
+- AI usage quotas
+- Environment-based secret configuration
+
+### Database Security
+
+- PostgreSQL Row Level Security
+- User-associated records
+- Separate permissions for client and privileged server operations
+
+### Build Security
+
+- Signing credentials stored in GitHub Actions secrets
+- Private keystore excluded from source control
+- Separate release-signing workflow
+
+### Responsible Use
+
+Do not upload private keys, credentials, passwords, or sensitive personal information to public GitHub issues.
+
+AI-generated responses can be inaccurate and should be independently verified for consequential decisions.
 
 ---
 
-## 🚀 Future Improvements
+## ⚠️ Known Limitations
 
-Potential future enhancements include:
-
-- Voice input and speech responses.
-- AI-assisted task creation.
-- Smart reminders and notifications.
-- Search across personal notes.
-- Improved conversation history management.
-- Offline note and task support.
-- Improved loading states and error handling.
-- Automated release version management.
-- Broader Android device testing.
-- Google Play Store distribution.
-
-These are planned possibilities, not features claimed to be implemented in v1.0.0.
+| Limitation | Explanation |
+|---|---|
+| Internet dependency | Cloud-connected features require network access |
+| AI quota restrictions | Gemini usage depends on provider limits |
+| Free-tier hosting | Backend startup delays and resource restrictions may occur |
+| Android distribution | APK is distributed outside Google Play |
+| Device coverage | Testing has not covered every Android version or manufacturer |
+| AI reliability | Model responses are not guaranteed to be correct |
 
 ---
 
-## 📖 What I Learned
+## 🗺️ Roadmap
 
-Building this project involved practical experience with:
+The following are possible future enhancements, not features claimed to exist in v1.0.0.
 
-- Flutter mobile application development.
-- REST API integration.
-- FastAPI backend development.
-- AI API integration using Google Gemini.
-- Supabase authentication and PostgreSQL.
-- Row Level Security for multi-user applications.
-- Cloud deployment on Render.
-- Server-side rate limiting.
-- GitHub Actions CI/CD pipelines.
-- Android APK signing and release management.
-- Real-device testing and debugging.
+- [ ] Voice interaction
+- [ ] AI-assisted task creation
+- [ ] Smart reminders and notifications
+- [ ] Search across personal notes
+- [ ] Offline note and task support
+- [ ] Enhanced conversation history
+- [ ] Improved automated integration tests
+- [ ] Automated release versioning
+- [ ] Expanded Android device testing
+- [ ] Google Play Store publication
+
+---
+
+## 💡 Engineering Challenges and Lessons
+
+### 1. Securing AI Credentials
+
+**Challenge:** Mobile applications can be inspected, making embedded API secrets unsafe.
+
+**Approach:** Use a backend to communicate with Gemini and keep private credentials on the server.
+
+### 2. Protecting Multi-User Data
+
+**Challenge:** A cloud database must prevent one account from accessing another account's private information.
+
+**Approach:** Combine authenticated user sessions with PostgreSQL Row Level Security.
+
+### 3. Controlling AI API Usage
+
+**Challenge:** AI services have request quotas and resource limitations.
+
+**Approach:** Enforce rate limits on the backend instead of trusting client-side controls.
+
+### 4. Building Android Releases in the Cloud
+
+**Challenge:** Producing distributable Android APKs requires build tooling and signing configuration.
+
+**Approach:** Automate Flutter builds and release signing through GitHub Actions.
+
+### 5. Debugging Release-Only Issues
+
+**Challenge:** A working debug application does not guarantee a working release build.
+
+**Approach:** Test the signed APK on a physical device, identify configuration differences, and validate fixes.
+
+---
+
+## 🎯 Project Outcomes
+
+This project demonstrates experience with:
+
+- Full-stack application development
+- Flutter mobile development
+- Python REST API development
+- Generative AI integration
+- Authentication and authorization
+- PostgreSQL database design
+- Cloud deployment
+- Server-side rate limiting
+- CI/CD automation
+- Android signing and distribution
+- Real-device debugging
+- Multi-user functional testing
 
 ---
 
@@ -550,36 +642,64 @@ Building this project involved practical experience with:
 
 **Ashiwany Kumar**
 
-Computer Science and Engineering (AI & ML)
-
+Computer Science and Engineering (AI & ML)  
 Haldia Institute of Technology
 
-**GitHub:** [Ashiwany25](https://github.com/Ashiwany25)
+[![GitHub](https://img.shields.io/badge/GitHub-Ashiwany25-181717?logo=github&logoColor=white)](https://github.com/Ashiwany25)
 
 ---
 
-## 📥 Releases
+## 🤝 Contributing
 
-Download the latest available version:
+Suggestions, bug reports, and improvement ideas are welcome.
 
-[**Personal AI Agent — GitHub Releases**](https://github.com/Ashiwany25/Personal-AI-Agent/releases)
+To propose an improvement:
 
-### Version History
+1. Open an issue describing the problem or feature.
+2. Discuss the proposed change before major modifications.
+3. Fork the repository.
+4. Create a dedicated feature branch.
+5. Submit a pull request explaining the changes and testing performed.
+
+For security-sensitive issues, avoid publishing credentials or exploitable private details in public issues.
+
+---
+
+## 🐛 Issues and Feedback
+
+Found a bug or have a suggestion?
+
+**[Open a GitHub Issue](https://github.com/Ashiwany25/Personal-AI-Agent/issues)**
+
+When reporting a bug, include:
+
+- Android version
+- Application version
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Relevant error message without sensitive information
+
+---
+
+## 📦 Release History
 
 | Version | Description |
 |---|---|
 | v1.0.0 | Initial Android release with AI Chat, authentication, Notes, Tasks, and cloud synchronization |
 
----
-
-## ⭐ Support
-
-If you find this project useful, consider giving the repository a star.
-
-For bugs, suggestions, or feature requests, open an issue:
-
-[**Report an Issue**](https://github.com/Ashiwany25/Personal-AI-Agent/issues)
+**[Download the Latest Available Release](https://github.com/Ashiwany25/Personal-AI-Agent/releases)**
 
 ---
+
+<div align="center">
+
+### ⭐ Support the Project
+
+If you find this project useful, consider starring the repository.
 
 **Built with Flutter, FastAPI, Supabase, and Google Gemini.**
+
+[⬆ Back to Top](#-personal-ai-agent)
+
+</div>
