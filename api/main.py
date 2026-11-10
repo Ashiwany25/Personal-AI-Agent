@@ -1,10 +1,11 @@
 
-"""Personal AI Agent - Secure FastAPI Backend."""
+"""Personal AI Agent - Secure FastAPI Backend with Rate Limiting."""
 
 import asyncio
 import logging
 import os
 import time
+import uuid
 
 from contextlib import asynccontextmanager
 
@@ -25,6 +26,10 @@ SUPABASE_URL = os.environ.get(
 
 SUPABASE_PUBLISHABLE_KEY = os.environ.get(
     "SUPABASE_PUBLISHABLE_KEY", ""
+)
+
+SUPABASE_SECRET_KEY = os.environ.get(
+    "SUPABASE_SECRET_KEY", ""
 )
 
 GEMINI_API_KEY = os.environ.get(
@@ -59,16 +64,20 @@ async def lifespan(app: FastAPI):
 
         app.state.http_client = client
 
-        logger.info("Personal AI Agent backend started")
+        logger.info(
+            "Personal AI Agent backend started"
+        )
 
         yield
 
-        logger.info("Personal AI Agent backend stopped")
+        logger.info(
+            "Personal AI Agent backend stopped"
+        )
 
 
 app = FastAPI(
     title="Personal AI Agent API",
-    version="1.3.0",
+    version="1.4.0",
     lifespan=lifespan,
 )
 
@@ -98,14 +107,16 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 async def health():
+
     return {
         "status": "ok",
         "service": "Personal AI Agent",
+        "version": "1.4.0",
     }
 
 
 # --------------------------------------------------
-# Authentication
+# Supabase Authentication
 # --------------------------------------------------
 
 async def authenticate(
@@ -113,6 +124,7 @@ async def authenticate(
 ) -> str:
 
     if not authorization:
+
         raise HTTPException(
             status_code=401,
             detail="Authentication required",
@@ -127,6 +139,7 @@ async def authenticate(
         or scheme.lower() != "bearer"
         or not access_token.strip()
     ):
+
         raise HTTPException(
             status_code=401,
             detail="Invalid authorization header",
@@ -134,28 +147,32 @@ async def authenticate(
 
     access_token = access_token.strip()
 
-    # Only Supabase-authenticated users are accepted.
-    # Legacy APP_ACCESS_TOKEN authentication is removed.
+    if (
+        not SUPABASE_URL
+        or not SUPABASE_PUBLISHABLE_KEY
+    ):
 
-    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
         raise HTTPException(
             status_code=503,
             detail="Supabase authentication unavailable",
         )
 
     try:
+
         response = await app.state.http_client.get(
             f"{SUPABASE_URL}/auth/v1/user",
             headers={
                 "apikey": SUPABASE_PUBLISHABLE_KEY,
-                "Authorization": f"Bearer {access_token}",
+                "Authorization": (
+                    f"Bearer {access_token}"
+                ),
             },
         )
 
     except httpx.TimeoutException:
 
         logger.warning(
-            "Supabase verification timed out"
+            "Supabase authentication timed out"
         )
 
         raise HTTPException(
@@ -166,7 +183,7 @@ async def authenticate(
     except httpx.RequestError:
 
         logger.warning(
-            "Supabase verification unavailable"
+            "Supabase authentication unavailable"
         )
 
         raise HTTPException(
@@ -184,7 +201,7 @@ async def authenticate(
     if response.status_code != 200:
 
         logger.warning(
-            "Supabase verification returned HTTP %d",
+            "Authentication returned HTTP %d",
             response.status_code,
         )
 
@@ -194,24 +211,157 @@ async def authenticate(
         )
 
     try:
+
         user = response.json()
         user_id = user.get("id")
 
-    except (ValueError, AttributeError):
+        if not isinstance(user_id, str):
+            raise ValueError("Invalid user ID")
+
+        user_id = str(uuid.UUID(user_id))
+
+    except (ValueError, TypeError, AttributeError):
 
         raise HTTPException(
             status_code=503,
             detail="Invalid authentication response",
         ) from None
 
-    if not isinstance(user_id, str) or not user_id:
+    return user_id
 
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid user identity",
+
+# --------------------------------------------------
+# Persistent Supabase Rate Limiting
+# --------------------------------------------------
+
+async def consume_ai_quota(
+    user_id: str,
+) -> None:
+
+    # Never allow requests to bypass rate limiting
+    # if the backend secret is missing.
+
+    if (
+        not SUPABASE_URL
+        or not SUPABASE_SECRET_KEY
+    ):
+
+        logger.error(
+            "Rate limiting is not configured"
         )
 
-    return user_id
+        raise HTTPException(
+            status_code=503,
+            detail="AI quota service unavailable",
+        )
+
+    try:
+
+        response = await app.state.http_client.post(
+            (
+                f"{SUPABASE_URL}/rest/v1/rpc/"
+                "consume_ai_quota"
+            ),
+            headers={
+                "apikey": SUPABASE_SECRET_KEY,
+                "Authorization": (
+                    f"Bearer {SUPABASE_SECRET_KEY}"
+                ),
+                "Content-Type": "application/json",
+            },
+            json={
+                "p_user_id": user_id,
+            },
+        )
+
+    except httpx.TimeoutException:
+
+        logger.warning(
+            "Rate limit verification timed out"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI quota verification timed out",
+        ) from None
+
+    except httpx.RequestError:
+
+        logger.warning(
+            "Rate limit database unavailable"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI quota service unavailable",
+        ) from None
+
+    if response.status_code != 200:
+
+        logger.error(
+            "Rate limit RPC returned HTTP %d",
+            response.status_code,
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="AI quota verification failed",
+        )
+
+    try:
+
+        result = response.json()
+
+        if not isinstance(result, dict):
+            raise ValueError("Invalid quota response")
+
+        allowed = result.get("allowed")
+
+        if not isinstance(allowed, bool):
+            raise ValueError("Missing allowed flag")
+
+    except (ValueError, TypeError):
+
+        logger.error(
+            "Invalid rate limit RPC response"
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="Invalid AI quota response",
+        ) from None
+
+    if not allowed:
+
+        try:
+
+            retry_after = max(
+                1,
+                int(result.get("retry_after", 60)),
+            )
+
+        except (ValueError, TypeError):
+
+            retry_after = 60
+
+        logger.info(
+            "AI request rejected by rate limiter"
+        )
+
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "AI usage limit reached. "
+                "Please try again later."
+            ),
+            headers={
+                "Retry-After": str(retry_after),
+            },
+        )
+
+    logger.info(
+        "AI request allowed by rate limiter"
+    )
 
 
 # --------------------------------------------------
@@ -226,8 +376,11 @@ async def chat(
 
     request_started = time.perf_counter()
 
-    # Verify the user's Supabase session.
-    await authenticate(authorization)
+    # 1. Authenticate the user.
+
+    user_id = await authenticate(
+        authorization
+    )
 
     auth_seconds = (
         time.perf_counter() - request_started
@@ -237,6 +390,8 @@ async def chat(
         "AI timing: authentication=%.2fs",
         auth_seconds,
     )
+
+    # 2. Validate the request.
 
     if not GEMINI_API_KEY:
 
@@ -255,6 +410,25 @@ async def chat(
             detail="Invalid message role",
         )
 
+    # 3. Enforce the persistent rate limit.
+    # The user ID comes from Supabase verification,
+    # never from the Android request body.
+
+    await consume_ai_quota(
+        user_id
+    )
+
+    quota_seconds = (
+        time.perf_counter() - request_started
+    )
+
+    logger.info(
+        "AI timing: auth_and_quota=%.2fs",
+        quota_seconds,
+    )
+
+    # 4. Prepare Gemini conversation.
+
     contents = [
         types.Content(
             role=(
@@ -272,6 +446,8 @@ async def chat(
     ]
 
     gemini_started = time.perf_counter()
+
+    # 5. Generate the AI response.
 
     try:
 
@@ -300,8 +476,9 @@ async def chat(
                     )
                 )
 
-                return response.text or (
-                    "No response generated."
+                return (
+                    response.text
+                    or "No response generated."
                 )
 
         reply = await asyncio.wait_for(
