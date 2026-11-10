@@ -165,7 +165,18 @@ async def chat(
             or "No response generated."
         }
 
-    except Exception:
-        raise HTTPException(
-            503, "Gemini temporarily unavailable"
+    
+    except Exception as exc:
+        import logging
+
+        logger = logging.getLogger("uvicorn.error")
+        logger.error(
+            "Gemini request failed: %s",
+            type(exc).__name__,
         )
+
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini temporarily unavailable",
+        ) from None
+
