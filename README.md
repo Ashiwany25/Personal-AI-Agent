@@ -635,19 +635,7 @@ This project demonstrates experience with:
 - Android signing and distribution
 - Real-device debugging
 - Multi-user functional testing
-
----
-
-## 👨‍💻 Developer
-
-**Ashiwany Kumar**
-
-Computer Science and Engineering (AI & ML)  
-Haldia Institute of Technology
-
-[![GitHub](https://img.shields.io/badge/GitHub-Ashiwany25-181717?logo=github&logoColor=white)](https://github.com/Ashiwany25)
-
----
+  
 
 ## 🤝 Contributing
 
@@ -689,6 +677,20 @@ When reporting a bug, include:
 | v1.0.0 | Initial Android release with AI Chat, authentication, Notes, Tasks, and cloud synchronization |
 
 **[Download the Latest Available Release](https://github.com/Ashiwany25/Personal-AI-Agent/releases)**
+
+---
+
+---
+<div align="center">
+    
+## 👨‍💻 Developer
+
+**Ashiwany Kumar**
+
+Computer Science and Engineering (AI & ML)  
+Haldia Institute of Technology
+
+[![GitHub](https://img.shields.io/badge/GitHub-Ashiwany25-181717?logo=github&logoColor=white)](https://github.com/Ashiwany25)
 
 ---
 
