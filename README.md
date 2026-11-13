@@ -680,7 +680,6 @@ When reporting a bug, include:
 
 ---
 
----
 <div align="center">
     
 ## 👨‍💻 Developer
